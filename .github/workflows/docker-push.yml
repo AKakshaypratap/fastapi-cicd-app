@@ -3,7 +3,12 @@ name: Docker Build and Push
 on:
   push:
     branches: [main]
-    need: []
+  workflow_dispatch:
+
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
