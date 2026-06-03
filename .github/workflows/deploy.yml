@@ -1,0 +1,65 @@
+name: CD - Deploy to EC2
+
+on:
+  workflow_run:
+    workflows: ["Docker Build and Push"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  deploy-dev:
+    name: Deploy to Dev
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/app
+            docker compose pull
+            docker compose up -d
+            echo "Dev deployment done!"
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Deploy to Staging
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/app
+            docker compose pull
+            docker compose up -d
+            echo "Staging deployment done!"
+
+  deploy-prod:
+    name: Deploy to Prod
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment: prod
+
+    steps:
+      - name: Deploy to Prod
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/app
+            docker compose pull
+            docker compose up -d
+            echo "Prod deployment done!"
